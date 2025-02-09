@@ -38,7 +38,7 @@ class MainFrame(tk.Tk):
         self.refinement_session = ort.InferenceSession(refinement_model_path)
 
         # Allow selection for clips to be used
-        self.var = tk.StringVar(value="1-50")  # Default selection
+        self.var = tk.StringVar(value="1-10")  # Default selection
 
         self.released = False
         self.new_time = 0
@@ -50,12 +50,12 @@ class MainFrame(tk.Tk):
         self.mix_sr = 44100  # example sample rate for mixture
 
 
-        file_nums_array = np.linspace(0, 124, 125, dtype=int)
+        file_nums_array = np.linspace(0, 24, 25, dtype=int)
         strings = ["-10-0", "-10000--10", "0-10", "10-10000"]
 
         # Use np.tile to repeat the file_nums_array for each string, and np.repeat to repeat the strings accordingly
         dir_array = np.array([f"{s}/{str(num).zfill(4)}" for num in file_nums_array for s in strings])
-
+        print(dir_array)
         np.random.seed(43)
 
         np.random.shuffle(dir_array)
@@ -64,13 +64,14 @@ class MainFrame(tk.Tk):
         self.files_dict = {}
 
         # Number of selections (50 per set)
-        selection_size = 50
+        selection_size = 10
 
         # Loop to create selections (from 1 to 10)
-        for i in range(1, 10):
+        for i in range(1, 11):
             start_index = (i - 1) * selection_size
             end_index = i * selection_size
-            self.files_dict[f"files{i*50-49}-{i*50}"] = dir_array[start_index:end_index]
+            self.files_dict[f"files{i*10-9}-{i*10}"] = dir_array[start_index:end_index]
+            print(start_index, " - ", end_index)
 
         self.setup_directory()
         self.run_tse_model()
@@ -81,7 +82,7 @@ class MainFrame(tk.Tk):
         self.complete_log = []
 
         # Label to display the selected value
-        self.itr_label = tk.Label(self, text="Example 1/50")
+        self.itr_label = tk.Label(self, text="Example 1/10")
         self.itr_label.pack(pady=10)
 
         self.buttonframe1 = tk.Frame(self)
@@ -137,37 +138,38 @@ class MainFrame(tk.Tk):
         bottom_frame.pack(side="bottom", fill="x")
         # Add radio buttons to the frame with grid layout
 
-        self.addButton50 = tk.Radiobutton(bottom_frame, variable=self.var, text="1-50", value="1-50", command=self.mode)
-        self.addButton50.grid(row=0, column=0)
+        self.addButton10 = tk.Radiobutton(bottom_frame, variable=self.var, text="1-10", value="1-10", command=self.mode)
+        self.addButton10.grid(row=0, column=0)
 
-        self.addButton100 = tk.Radiobutton(bottom_frame, variable=self.var, text="51-100", value="51-100", command=self.mode)
-        self.addButton100.grid(row=0, column=1)
+        self.addButton20 = tk.Radiobutton(bottom_frame, variable=self.var, text="11-20", value="11-20", command=self.mode)
+        self.addButton20.grid(row=0, column=1)
         
-        self.addButton150 = tk.Radiobutton(bottom_frame, variable=self.var, text="101-150", value="101-150", command=self.mode)
-        self.addButton150.grid(row=0, column=2)
+        self.addButton30 = tk.Radiobutton(bottom_frame, variable=self.var, text="21-30", value="21-30", command=self.mode)
+        self.addButton30.grid(row=0, column=2)
         
-        self.addButton200 = tk.Radiobutton(bottom_frame, variable=self.var, text="151-200", value="151-200", command=self.mode)
-        self.addButton200.grid(row=0, column=3)
+        self.addButton40 = tk.Radiobutton(bottom_frame, variable=self.var, text="31-40", value="31-40", command=self.mode)
+        self.addButton40.grid(row=0, column=3)
         
-        self.addButton250 = tk.Radiobutton(bottom_frame, variable=self.var, text="201-250", value="201-250", command=self.mode)
-        self.addButton250.grid(row=0, column=4)
+        self.addButton50 = tk.Radiobutton(bottom_frame, variable=self.var, text="41-50", value="41-50", command=self.mode)
+        self.addButton50.grid(row=0, column=4)
         
-        self.addButton300 = tk.Radiobutton(bottom_frame, variable=self.var, text="251-300", value="251-300", command=self.mode)
-        self.addButton300.grid(row=1, column=0)
+        self.addButton60 = tk.Radiobutton(bottom_frame, variable=self.var, text="51-60", value="51-60", command=self.mode)
+        self.addButton60.grid(row=1, column=0)
         
-        self.addButton350 = tk.Radiobutton(bottom_frame, variable=self.var, text="301-350", value="301-350", command=self.mode)
-        self.addButton350.grid(row=1, column=1)
+        self.addButton70 = tk.Radiobutton(bottom_frame, variable=self.var, text="61-70", value="61-70", command=self.mode)
+        self.addButton70.grid(row=1, column=1)
         
-        self.addButton400 = tk.Radiobutton(bottom_frame, variable=self.var, text="351-400", value="351-400", command=self.mode)
-        self.addButton400.grid(row=1, column=2)
+        self.addButton80 = tk.Radiobutton(bottom_frame, variable=self.var, text="71-80", value="71-80", command=self.mode)
+        self.addButton80.grid(row=1, column=2)
         
-        self.addButton450 = tk.Radiobutton(bottom_frame, variable=self.var, text="401-450", value="401-450", command=self.mode)
-        self.addButton450.grid(row=1, column=3)
+        self.addButton90 = tk.Radiobutton(bottom_frame, variable=self.var, text="81-90", value="81-90", command=self.mode)
+        self.addButton90.grid(row=1, column=3)
         
-
+        self.addButton100 = tk.Radiobutton(bottom_frame, variable=self.var, text="91-100", value="91-100", command=self.mode)
+        self.addButton100.grid(row=1, column=3)
 
         # Label to display the selected value
-        self.label = tk.Label(self, text="You selected: 1-50")
+        self.label = tk.Label(self, text="You selected: 1-10")
         self.label.pack(pady=10)
 
 ########### MODELS ############
@@ -193,12 +195,7 @@ class MainFrame(tk.Tk):
 
         # If a new file is loaded, the mix input is the tse output. 
         # Otherwise, the mix input is the previous refinement model output
-        if (self.newSample):
-            mix = self.onnx_tse_out
-            self.newSample = False
-        else:
-            mix = self.onnx_refinement_out
-
+        mix, mix_sr = sf.read(self.mixture)
         mix = mix.reshape(1, 1, -1).astype(np.float32)
 
         embedding = np.load(self.dir + "/embedding.npy")
@@ -218,9 +215,9 @@ class MainFrame(tk.Tk):
         print(outputs['next_state'].shape)
 
         # only use refinement model ouput where edit mask is one, otherwise use previous mix
-        self.onnx_refinement_out = outputs['decoded_output'].reshape(-1) * edit_mask.reshape(-1) + (1-edit_mask).reshape(-1)*mix.reshape(-1)
+        self.onnx_refinement_out = outputs['decoded_output'].reshape(-1) * edit_mask.reshape(-1) + (1-edit_mask.reshape(-1))*mix.reshape(-1)
  
-        self.onnx_refinement_out_file = "/onnx_output.wav"
+        self.onnx_refinement_out_file = "/onnx_refinement_output.wav"
         sf.write(self.dir + self.onnx_refinement_out_file, self.onnx_refinement_out, 16000)
 
         if (self.num_refinements >= 5):
@@ -253,37 +250,39 @@ class MainFrame(tk.Tk):
         self.next_state = outputs['next_state']
 
         self.onnx_tse_out = outputs['decoded_output'] # to be used for playback, then as input for refinement
-        self.onnx_tse_out_file = "/onnx_output.wav" 
+        self.onnx_tse_out_file = "/onnx_tse_output.wav" 
         sf.write(self.dir + self.onnx_tse_out_file, outputs['decoded_output'].reshape(-1), 16000)
         
     # Sets up directory based on (1) the radio buttons on bottom left and (2) the user moving on to next sample
     def setup_directory(self):
-        self.dir = f"./human_data_test/"
-        current_index = (self.counter % 50) - 1
+        self.dir = f"./user_study_data/"
+        current_index = (self.counter % 10) - 1
         
         if current_index == -1:  # When counter is a multiple of 50, set index to 49
-            current_index = 49
+            current_index = 9
 
         print("current_index: ", current_index)
         
-        if (self.var.get() == "1-50"):
-            self.dir += self.files_dict["files1-50"][current_index]
-        elif (self.var.get() == "51-100"):
-            self.dir += self.files_dict["files51-100"][current_index]
-        elif (self.var.get() == "101-150"):
-            self.dir += self.files_dict["files101-150"][current_index]
-        elif (self.var.get() == "151-200"):
-            self.dir += self.files_dict["files151-200"][current_index]
-        elif (self.var.get() == "201-250"):
-            self.dir += self.files_dict["files201-250"][current_index]
-        elif (self.var.get() == "251-300"):
-            self.dir += self.files_dict["files251-300"][current_index]
-        elif (self.var.get() == "301-350"):
-            self.dir += self.files_dict["files301-350"][current_index]
-        elif (self.var.get() == "351-400"):
-            self.dir += self.files_dict["files351-400"][current_index]
-        elif (self.var.get() == "401-450"):
-            self.dir += self.files_dict["files401-450"][current_index]
+        if (self.var.get() == "1-10"):
+            self.dir += self.files_dict["files1-10"][current_index]
+        elif (self.var.get() == "11-20"):
+            self.dir += self.files_dict["files11-20"][current_index]
+        elif (self.var.get() == "21-30"):
+            self.dir += self.files_dict["files21-30"][current_index]
+        elif (self.var.get() == "31-40"):
+            self.dir += self.files_dict["files31-40"][current_index]
+        elif (self.var.get() == "41-50"):
+            self.dir += self.files_dict["files41-50"][current_index]
+        elif (self.var.get() == "51-60"):
+            self.dir += self.files_dict["files51-60"][current_index]
+        elif (self.var.get() == "61-70"):
+            self.dir += self.files_dict["files61-70"][current_index]
+        elif (self.var.get() == "71-80"):
+            self.dir += self.files_dict["files71-80"][current_index]
+        elif (self.var.get() == "81-90"):
+            self.dir += self.files_dict["files81-90"][current_index]
+        elif (self.var.get() == "91-100"):
+            self.dir += self.files_dict["files91-100"][current_index]
 
         self.mixture = self.dir + "/mixture.wav"
         self.enrollment = self.dir + "/enrollment.wav"
@@ -294,54 +293,56 @@ class MainFrame(tk.Tk):
     def mode(self):
         # Update the label text with the selected value
         self.label.config(text=f"You selected: {self.var.get()}")
-        if (self.var.get() == "1-50"):
+        if (self.var.get() == "1-10"):
             self.counter = 1
-        elif (self.var.get() == "51-100"):
+        elif (self.var.get() == "11-20"):
+            self.counter = 11
+        elif (self.var.get() == "21-30"):
+            self.counter = 21
+        elif (self.var.get() == "31-40"):
+            self.counter = 31
+        elif (self.var.get() == "41-50"):
+            self.counter = 41
+        elif (self.var.get() == "51-60"):
             self.counter = 51
-        elif (self.var.get() == "101-150"):
-            self.counter = 101
-        elif (self.var.get() == "151-200"):
-            self.counter = 151
-        elif (self.var.get() == "201-250"):
-            self.counter = 201
-        elif (self.var.get() == "251-300"):
-            self.counter = 251
-        elif (self.var.get() == "301-350"):
-            self.counter = 301
-        elif (self.var.get() == "351-400"):
-            self.counter = 351
-        elif (self.var.get() == "401-450"):
-            self.counter = 401
+        elif (self.var.get() == "61-70"):
+            self.counter = 61
+        elif (self.var.get() == "71-80"):
+            self.counter = 71
+        elif (self.var.get() == "81-90"):
+            self.counter = 81
+        elif (self.var.get() == "91-100"):
+            self.counter = 91
 
-        if (self.var.get() == "1-50"):
+        if (self.var.get() == "1-10"):
+            self.itr_label.config(text=f"Example {self.counter}/10")
+
+        elif (self.var.get() == "11-20"):
+            self.itr_label.config(text=f"Example {self.counter}/20")
+
+        elif (self.var.get() == "21-30"):
+            self.itr_label.config(text=f"Example {self.counter}/30")
+
+        elif ((self.var.get() == "31-40")):
+            self.itr_label.config(text=f"Example {self.counter}/40")
+        
+        elif ((self.var.get() == "41-50")):
             self.itr_label.config(text=f"Example {self.counter}/50")
-
-        elif (self.var.get() == "51-100"):
+        
+        elif ((self.var.get() == "51-60")):
+            self.itr_label.config(text=f"Example {self.counter}/60")
+        
+        elif ((self.var.get() == "61-70")):
+            self.itr_label.config(text=f"Example {self.counter}/70")
+        
+        elif ((self.var.get() == "71-80")):
+            self.itr_label.config(text=f"Example {self.counter}/80")
+        
+        elif ((self.var.get() == "81-90")):
+            self.itr_label.config(text=f"Example {self.counter}/90")
+        
+        elif ((self.var.get() == "91-100")):
             self.itr_label.config(text=f"Example {self.counter}/100")
-
-        elif (self.var.get() == "101-150"):
-            self.itr_label.config(text=f"Example {self.counter}/150")
-
-        elif ((self.var.get() == "151-200")):
-            self.itr_label.config(text=f"Example {self.counter}/200")
-        
-        elif ((self.var.get() == "201-250")):
-            self.itr_label.config(text=f"Example {self.counter}/250")
-        
-        elif ((self.var.get() == "251-300")):
-            self.itr_label.config(text=f"Example {self.counter}/300")
-        
-        elif ((self.var.get() == "301-350")):
-            self.itr_label.config(text=f"Example {self.counter}/350")
-        
-        elif ((self.var.get() == "351-400")):
-            self.itr_label.config(text=f"Example {self.counter}/400")
-        
-        elif ((self.var.get() == "401-450")):
-            self.itr_label.config(text=f"Example {self.counter}/450")
-        
-        elif ((self.var.get() == "451-500")):
-            self.itr_label.config(text=f"Example {self.counter}/500")
         
 
         self.setup_directory()
@@ -494,16 +495,16 @@ class MainFrame(tk.Tk):
         print("Complete log: ", self.complete_log)
         self.file_log = []
 
-        if (((self.var.get() == "1-50") and (self.counter == 51))
-            or ((self.var.get() == "51-100") and (self.counter == 101))
-            or ((self.var.get() == "101-150") and (self.counter == 151))
-            or ((self.var.get() == "151-200") and (self.counter == 201))
-            or ((self.var.get() == "201-250") and (self.counter == 251))
-            or ((self.var.get() == "251-300") and (self.counter == 301))
-            or ((self.var.get() == "301-350") and (self.counter == 351))
-            or ((self.var.get() == "351-400") and (self.counter == 401))
-            or ((self.var.get() == "401-450") and (self.counter == 451))
-            or ((self.var.get() == "451-500") and (self.counter == 501))
+        if (((self.var.get() == "1-10") and (self.counter == 11))
+            or ((self.var.get() == "11-20") and (self.counter == 21))
+            or ((self.var.get() == "21-30") and (self.counter == 31))
+            or ((self.var.get() == "31-40") and (self.counter == 41))
+            or ((self.var.get() == "41-50") and (self.counter == 51))
+            or ((self.var.get() == "51-60") and (self.counter == 61))
+            or ((self.var.get() == "61-70") and (self.counter == 71))
+            or ((self.var.get() == "71-80") and (self.counter == 81))
+            or ((self.var.get() == "81-90") and (self.counter == 91))
+            or ((self.var.get() == "91-100") and (self.counter == 101))
             ):
             self.exit()
         else:
@@ -517,35 +518,35 @@ class MainFrame(tk.Tk):
             self.ax3.clear()
             self.draw_waveform()
             self.canvas.draw()
-            if (self.var.get() == "1-50"):
+            if (self.var.get() == "1-10"):
+                self.itr_label.config(text=f"Example {self.counter}/10")
+
+            elif (self.var.get() == "11-20"):
+                self.itr_label.config(text=f"Example {self.counter}/20")
+
+            elif (self.var.get() == "21-30"):
+                self.itr_label.config(text=f"Example {self.counter}/30")
+
+            elif ((self.var.get() == "31-40")):
+                self.itr_label.config(text=f"Example {self.counter}/40")
+            
+            elif ((self.var.get() == "41-50")):
                 self.itr_label.config(text=f"Example {self.counter}/50")
-
-            elif (self.var.get() == "51-100"):
+            
+            elif ((self.var.get() == "51-60")):
+                self.itr_label.config(text=f"Example {self.counter}/60")
+            
+            elif ((self.var.get() == "61-70")):
+                self.itr_label.config(text=f"Example {self.counter}/70")
+            
+            elif ((self.var.get() == "71-80")):
+                self.itr_label.config(text=f"Example {self.counter}/80")
+            
+            elif ((self.var.get() == "81-90")):
+                self.itr_label.config(text=f"Example {self.counter}/90")
+            
+            elif ((self.var.get() == "91-100")):
                 self.itr_label.config(text=f"Example {self.counter}/100")
-
-            elif (self.var.get() == "101-150"):
-                self.itr_label.config(text=f"Example {self.counter}/150")
-
-            elif ((self.var.get() == "151-200")):
-                self.itr_label.config(text=f"Example {self.counter}/200")
-            
-            elif ((self.var.get() == "201-250")):
-                self.itr_label.config(text=f"Example {self.counter}/250")
-            
-            elif ((self.var.get() == "251-300")):
-                self.itr_label.config(text=f"Example {self.counter}/300")
-            
-            elif ((self.var.get() == "301-350")):
-                self.itr_label.config(text=f"Example {self.counter}/350")
-            
-            elif ((self.var.get() == "351-400")):
-                self.itr_label.config(text=f"Example {self.counter}/400")
-            
-            elif ((self.var.get() == "401-450")):
-                self.itr_label.config(text=f"Example {self.counter}/450")
-            
-            elif ((self.var.get() == "451-500")):
-                self.itr_label.config(text=f"Example {self.counter}/500")
             
             
             self.new_time = 0
@@ -556,32 +557,35 @@ class MainFrame(tk.Tk):
         print("Iteration log: ", self.file_log)
         print("Complete log: ", self.complete_log)
         self.file_log = []
-        if (self.var.get() == "1-50"):
-            file_path = 'log1_50.json'
+        if (self.var.get() == "1-10"):
+            file_path = 'log1_10.json'
 
-        elif (self.var.get() == "51-100"):
-            file_path = 'log51_100.json'
+        elif (self.var.get() == "11-20"):
+            file_path = 'log11_20.json'
             
-        elif (self.var.get() == "101-150"):
-            file_path = 'log101_150.json'
+        elif (self.var.get() == "21-30"):
+            file_path = 'log21_30.json'
 
-        elif (self.var.get() == "151-200"):
-            file_path = 'log151_200.json'
+        elif (self.var.get() == "31-40"):
+            file_path = 'log31_40.json'
 
-        elif (self.var.get() == "201-250"):
-            file_path = 'log201_250.json'
+        elif (self.var.get() == "41-50"):
+            file_path = 'log41_50.json'
 
-        elif (self.var.get() == "251-300"):
-            file_path = 'log251_300.json'
+        elif (self.var.get() == "51-60"):
+            file_path = 'log51_60.json'
 
-        elif (self.var.get() == "301-350"):
-            file_path = 'log301_350.json'
+        elif (self.var.get() == "61-70"):
+            file_path = 'log61_70.json'
 
-        elif (self.var.get() == "351-400"):
-            file_path = 'log351_400.json'
+        elif (self.var.get() == "71-80"):
+            file_path = 'log71_80.json'
 
-        elif (self.var.get() == "401-450"):
-            file_path = 'log401_450.json'
+        elif (self.var.get() == "81-90"):
+            file_path = 'log81_90.json'
+
+        elif (self.var.get() == "91-100"):
+            file_path = 'log91_100.json'
 
         # Write data to the JSON file
         with open(file_path, 'w') as json_file:
@@ -721,7 +725,7 @@ class MainFrame(tk.Tk):
             
 
     def on_release(self, event):
-        # Finalize the selection when the mouse button is released
+        # Finalize the fection when the mouse button is released
         if event and event.xdata is not None:
             self.end_x = max(0, event.xdata)  # Record the ending x-coordinate
             self.end_x = min(self.end_x, 4.9989)
