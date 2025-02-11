@@ -17,6 +17,7 @@ import onnxruntime as ort
 from masking_functions import FGMasking
 import torch
 import shutil
+import argparse
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -29,7 +30,7 @@ sd.default.samplerate = 16000
 fgmask = FGMasking(16000, aggregation_type='dBFS', thresh=-40)
 
 class MainFrame(tk.Tk):
-    def __init__(self):
+    def __init__(self, args: argparse.Namespace):
         super(MainFrame, self).__init__()
         self.title("Target Speech Extraction User Interface")
         self.geometry('800x600')
@@ -56,7 +57,7 @@ class MainFrame(tk.Tk):
         self.tse_session = ort.InferenceSession(tse_model_path)
 
         # Load the model and create InferenceSession for refinement model
-        refinement_model_path = "refinement_model.onnx"
+        refinement_model_path = args.ref
         self.refinement_session = ort.InferenceSession(refinement_model_path)
 
         # Allow selection for clips to be used
@@ -77,7 +78,7 @@ class MainFrame(tk.Tk):
 
         # Use np.tile to repeat the file_nums_array for each string, and np.repeat to repeat the strings accordingly
         dir_array = np.array([f"{s}/{str(num).zfill(4)}" for num in file_nums_array for s in strings])
-        print(dir_array)
+
         np.random.seed(43)
 
         np.random.shuffle(dir_array)
@@ -93,7 +94,6 @@ class MainFrame(tk.Tk):
             start_index = (i - 1) * selection_size
             end_index = i * selection_size
             self.files_dict[f"files{i*10-9}-{i*10}"] = dir_array[start_index:end_index]
-            print(start_index, " - ", end_index)
 
         self.setup_directory()
         self.run_tse_model()
@@ -912,6 +912,15 @@ class MainFrame(tk.Tk):
 
         self.canvas.draw()
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--ref', 
+                        type=str,
+                        default="refinement_model.onnx",
+                        help='Path to onnx refinement model')
+    
+    args = parser.parse_args()
 
-frame = MainFrame()
+
+frame = MainFrame(args)
 frame.mainloop()
