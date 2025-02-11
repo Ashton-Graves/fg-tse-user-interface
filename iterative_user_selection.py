@@ -245,41 +245,51 @@ class MainFrame(tk.Tk):
         sf.write(self.dir + "/edit_mask.wav", self.edit_mask, 16000)
 
     def run_refinement_model(self):
-        self.num_refinements += 1
-        print("self.num_refinements: ", self.num_refinements)
+        if self.num_refinements == 0:
+            current_audio = self.onnx_tse_out
+        else:
+            current_audio = self.onnx_refinement_out
 
         # If a new file is loaded, the mix input is the tse output. 
         # Otherwise, the mix input is the previous refinement model output
         mix, mix_sr = sf.read(self.mixture)
-        mix = mix.reshape(1, 1, -1).astype(np.float32)
-
         embedding = np.load(self.dir + "/embedding.npy")
         embedding = embedding.reshape(1, -1).astype(np.float32)
-
-        edit_mask = self.edit_mask.reshape(1, 1, -1).astype(np.float32)
-        current_state = self.next_state.astype(np.float32)
 
         print(self.mixture)
         print(self.dir + "/embedding.npy")
 
         # Run inference
         outputs = self.refinement_session.run(["decoded_output", "next_state"], # outputs
-                {"edit_mask": edit_mask, "current_state": current_state, "mixture": mix, "embedding": embedding}) # inputs
+                {"edit_mask": self.edit_mask.reshape(1, 1, -1).astype(np.float32),
+                 "current_state": self.current_state,
+                 "mixture": mix.reshape(1, 1, -1).astype(np.float32),
+                 "embedding": embedding}) # inputs
         outputs = {self.refinement_session.get_outputs()[i].name: outputs[i] for i in range(len(outputs))}
-        print(outputs['decoded_output'].shape)
-        print(outputs['next_state'].shape)
+        self.current_state = outputs['next_state']
+        output_audio = outputs['decoded_output'].reshape(-1)
 
-        # update next state
-        self.next_state = outputs['next_state']
+        print(output_audio.shape)
+        print(self.current_state.shape)
 
-        # store next state as np array
-        np.save(self.dir + '/next_state.npy', outputs['next_state'])
-
-        # only use refinement model ouput where edit mask is one, otherwise use previous mix
-        self.onnx_refinement_out = outputs['decoded_output'].reshape(-1) * edit_mask.reshape(-1) + (1-edit_mask.reshape(-1))*mix.reshape(-1)
+        # only use refinement model ouput where edit mask is one, otherwise use previous output
+        self.onnx_refinement_out = output_audio * self.edit_mask + (1-self.edit_mask) * current_audio
  
         self.onnx_refinement_out_file = "/onnx_refinement_output.wav"
-        sf.write(self.dir + self.onnx_refinement_out_file, self.onnx_refinement_out, 16000)
+        # sf.write(self.dir + self.onnx_refinement_out_file, self.onnx_refinement_out, 16000)
+
+        self.num_refinements += 1
+        print("self.num_refinements: ", self.num_refinements)
+
+        sf.write(os.path.join('debug', 'onnx_refinement_output.wav'), output_audio, 16000)
+        sf.write(os.path.join('debug', 'edit_mask.wav'), self.edit_mask, 16000)
+        sf.write(os.path.join('debug', 'mixture.wav'), mix, 16000)
+
+        enrollment, _ = sf.read(self.dir + '/enrollment_full.wav')
+        sf.write(os.path.join('debug', 'enrollment.wav'), enrollment, 16000)
+
+        gt, _ = sf.read(self.dir + '/gt.wav')
+        sf.write(os.path.join('debug', 'gt.wav'), gt, 16000)
 
         self.refinements_label.config(text=f"Refinement attempts: {self.num_refinements}/5")
 
@@ -307,9 +317,6 @@ class MainFrame(tk.Tk):
             self.refinements_label.config(text = "Refinement attempts: 0/5")
     
     def run_tse_model(self):
-        # indicates that this is a new sample and the refinement model hasn't been run yet for this sample
-        self.newSample = True
-
         # resets the amount of times that the refinement model has been run
         self.num_refinements = 0
 
@@ -328,14 +335,10 @@ class MainFrame(tk.Tk):
         outputs = {self.tse_session.get_outputs()[i].name: outputs[i] for i in range(len(outputs))}
         print(outputs['decoded_output'].shape)
         print(outputs['next_state'].shape)
-
-        # update next state
-        self.next_state = outputs['next_state']
-
-        # store next state as np array
         np.save(self.dir + '/next_state.npy', outputs['next_state'])
+        self.current_state = outputs['next_state']
 
-        self.onnx_tse_out = outputs['decoded_output'] # to be used for playback, then as input for refinement
+        self.onnx_tse_out = outputs['decoded_output'].reshape(-1) # to be used for playback, then as input for refinement
         self.onnx_tse_out_file = "/onnx_tse_output.wav" 
         sf.write(self.dir + self.onnx_tse_out_file, outputs['decoded_output'].reshape(-1), 16000)
         
