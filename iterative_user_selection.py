@@ -14,6 +14,7 @@ import subprocess
 import os
 import random
 import onnxruntime as ort
+import shutil
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -28,6 +29,23 @@ class MainFrame(tk.Tk):
         super(MainFrame, self).__init__()
         self.title("Target Speech Extraction User Interface")
         self.geometry('800x600')
+
+        # Define the parent directory and the new folder name
+        self.data_folder = "user1_10_data"
+
+        if os.path.exists(self.data_folder):
+            # Deletes the folder and all contents
+            try:
+                shutil.rmtree(self.data_folder)
+                print(f"Deleted folder: {self.data_folder}")
+            except FileNotFoundError:
+                print("Folder not found.")
+            except PermissionError:
+                print("Permission denied. Try running as administrator.")
+            print(self.data_folder, " deleted")
+
+        # Create the folder (exist_ok=True avoids errors if it already exists)
+        os.makedirs(self.data_folder, exist_ok=True)
 
         # Load the model and create InferenceSession for tse_model
         tse_model_path = "tse_model.onnx"
@@ -83,7 +101,12 @@ class MainFrame(tk.Tk):
 
         # Label to display the selected value
         self.itr_label = tk.Label(self, text="Example 1/10")
-        self.itr_label.pack(pady=10)
+        self.itr_label.pack(pady=3)
+
+        self.refinement_counter = 0 # keeps track of the number of times the user has pushed refine
+
+        self.refinements_label = tk.Label(self, text="Refinement attempt 0/5")
+        self.refinements_label.pack(pady=3)
 
         self.buttonframe1 = tk.Frame(self)
         self.buttonframe1.columnconfigure(0, weight=1)
@@ -172,6 +195,37 @@ class MainFrame(tk.Tk):
         self.label = tk.Label(self, text="You selected: 1-10")
         self.label.pack(pady=10)
 
+
+        # Make a new folder for the first sample
+        self.sample_folder = "" + self.dir[2:]
+        self.sample_folder = self.sample_folder.replace("/", "_")
+
+        # Full path of the new folder
+        self.path_to_sample = os.path.join(self.data_folder, self.sample_folder)
+
+        # Create the folder (exist_ok=True avoids errors if it already exists)
+        os.makedirs(self.path_to_sample, exist_ok=True)
+
+
+        # Make a new folder for the first refinement attempt
+        self.ref_folder = "initial_tse_output"
+
+        # Full path of the new folder
+        self.path_to_ref = os.path.join(self.path_to_sample, self.ref_folder)
+
+        # Create the folder (exist_ok=True avoids errors if it already exists)
+        os.makedirs(self.path_to_ref, exist_ok=True)
+
+        shutil.copy(self.dir + "/embedding.npy", self.path_to_ref)
+        shutil.copy(self.dir + "/enrollment.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/enrollment_full.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/gt.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/mixture.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/tse_output.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/onnx_tse_output.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/next_state.npy", self.path_to_ref)
+
+
 ########### MODELS ############
 
     # generates edit mask based on the highlighted regions
@@ -188,6 +242,7 @@ class MainFrame(tk.Tk):
             
             print(f"edit_mask[{start_index}:{end_index}]: ", self.edit_mask[start_index:end_index])
             print(f"edit_mask[{end_index-1}:]: ", self.edit_mask[end_index-1:])
+        sf.write(self.dir + "/edit_mask.wav", self.edit_mask, 16000)
 
     def run_refinement_model(self):
         self.num_refinements += 1
@@ -214,15 +269,42 @@ class MainFrame(tk.Tk):
         print(outputs['decoded_output'].shape)
         print(outputs['next_state'].shape)
 
+        # update next state
+        self.next_state = outputs['next_state']
+
+        # store next state as np array
+        np.save(self.dir + '/next_state.npy', outputs['next_state'])
+
         # only use refinement model ouput where edit mask is one, otherwise use previous mix
         self.onnx_refinement_out = outputs['decoded_output'].reshape(-1) * edit_mask.reshape(-1) + (1-edit_mask.reshape(-1))*mix.reshape(-1)
  
         self.onnx_refinement_out_file = "/onnx_refinement_output.wav"
         sf.write(self.dir + self.onnx_refinement_out_file, self.onnx_refinement_out, 16000)
 
+        self.refinements_label.config(text=f"Refinement attempts: {self.num_refinements}/5")
+
+        # Make a new folder for the current refinement attempt
+        self.ref_folder = f"attempt{self.num_refinements}"
+
+        # Full path of the new folder
+        self.path_to_ref = os.path.join(self.path_to_sample, self.ref_folder)
+
+        # Create the folder (exist_ok=True avoids errors if it already exists)
+        os.makedirs(self.path_to_ref, exist_ok=True)
+
+        shutil.copy(self.dir + "/embedding.npy", self.path_to_ref)
+        shutil.copy(self.dir + "/enrollment.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/enrollment_full.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/gt.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/mixture.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/tse_output.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/onnx_refinement_output.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/edit_mask.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/next_state.npy", self.path_to_ref)
+
         if (self.num_refinements >= 5):
-            print("in")
             self.done()
+            self.refinements_label.config(text = "Refinement attempts: 0/5")
     
     def run_tse_model(self):
         # indicates that this is a new sample and the refinement model hasn't been run yet for this sample
@@ -233,7 +315,7 @@ class MainFrame(tk.Tk):
 
         # "Load and preprocess the input image inputTensor"
         mix, mix_sr = sf.read(self.mixture)
-        assert mix_sr ==16000
+        assert mix_sr == 16000
         mix = mix.reshape(1, 1, -1).astype(np.float32)
 
         embedding = np.load(self.dir + "/embedding.npy")
@@ -247,7 +329,11 @@ class MainFrame(tk.Tk):
         print(outputs['decoded_output'].shape)
         print(outputs['next_state'].shape)
 
+        # update next state
         self.next_state = outputs['next_state']
+
+        # store next state as np array
+        np.save(self.dir + '/next_state.npy', outputs['next_state'])
 
         self.onnx_tse_out = outputs['decoded_output'] # to be used for playback, then as input for refinement
         self.onnx_tse_out_file = "/onnx_tse_output.wav" 
@@ -291,6 +377,50 @@ class MainFrame(tk.Tk):
 
     # Selects group of file by using radio buttons on bottom left. Resets the counter to the first sample of the group. Updates GUI
     def mode(self):
+        if os.path.exists(self.data_folder):
+            # Deletes the folder and all contents
+            try:
+                shutil.rmtree(self.data_folder)
+                print(f"Deleted folder: {self.data_folder}")
+            except FileNotFoundError:
+                print("Folder not found.")
+            except PermissionError:
+                print("Permission denied. Try running as administrator.")
+            print(self.data_folder, " deleted")
+
+
+        self.data_folder = f"user{str(self.var.get())}_data"
+
+        # Create the folder (exist_ok=True avoids errors if it already exists)
+        os.makedirs(self.data_folder, exist_ok=True)
+
+        # Define the parent directory and the new folder name
+        self.sample_folder = "" + self.dir[2:]
+        self.sample_folder = self.sample_folder.replace("/", "_")
+        print(self.sample_folder)
+
+        # Full path of the new folder
+        self.path_to_sample = os.path.join(self.data_folder, self.sample_folder)
+
+        # Create the folder (exist_ok=True avoids errors if it already exists)
+        os.makedirs(self.path_to_sample, exist_ok=True) 
+
+        # Make a new folder for the first refinement attempt
+        self.ref_folder = "initial_tse_output"
+
+        # Full path of the new folder
+        self.path_to_ref = os.path.join(self.path_to_sample, self.ref_folder)
+
+        shutil.copy(self.dir + "/embedding.npy", self.path_to_ref)
+        shutil.copy(self.dir + "/enrollment.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/enrollment_full.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/gt.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/mixture.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/tse_output.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/onnx_tse_output.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/next_state.npy", self.path_to_ref)
+
+
         # Update the label text with the selected value
         self.label.config(text=f"You selected: {self.var.get()}")
         if (self.var.get() == "1-10"):
@@ -484,9 +614,11 @@ class MainFrame(tk.Tk):
         self.file_log.append(self.itr_log)
         self.itr_log = []
 
+
+
     def done(self):
-        print("done")
         self.counter += 1
+        self.refinements_label.config(text=f"Refinement attempts: {self.num_refinements}/5")
 
         # Redraw the canvas to update the plot
         self.complete_log.append(self.dir)
@@ -551,6 +683,37 @@ class MainFrame(tk.Tk):
             
             self.new_time = 0
             self.slider.config(value=0)
+
+        # Define the parent directory and the new folder name
+        self.sample_folder = "" + self.dir[2:]
+        self.sample_folder = self.sample_folder.replace("/", "_")
+        print(self.sample_folder)
+
+        # Full path of the new folder
+        self.path_to_sample = os.path.join(self.data_folder, self.sample_folder)
+
+        # Create the folder (exist_ok=True avoids errors if it already exists)
+        os.makedirs(self.path_to_sample, exist_ok=True)
+
+
+        # Make a new folder for the first refinement attempt
+        self.ref_folder = "initial_tse_output"
+
+        # Full path of the new folder
+        self.path_to_ref = os.path.join(self.path_to_sample, self.ref_folder)
+
+        # Create the folder (exist_ok=True avoids errors if it already exists)
+        os.makedirs(self.path_to_ref, exist_ok=True)
+
+        shutil.copy(self.dir + "/embedding.npy", self.path_to_ref)
+        shutil.copy(self.dir + "/enrollment.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/enrollment_full.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/gt.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/mixture.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/tse_output.wav", self.path_to_ref)
+        shutil.copy(self.dir + "/onnx_tse_output.wav", self.path_to_ref)
+        
+
 
     def exit(self):
         self.complete_log.append(self.file_log)
