@@ -14,14 +14,18 @@ import subprocess
 import os
 import random
 import onnxruntime as ort
+from masking_functions import FGMasking
+import torch
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-pygame.mixer.pre_init(44100, -16, 2, 512)  # Adjust buffer size if needed
+pygame.mixer.pre_init(16000, -16, 2, 512)  # Adjust buffer size if needed
 pygame.mixer.init()
 
-sd.default.samplerate = 44100 
+sd.default.samplerate = 16000
+
+fgmask = FGMasking(16000, aggregation_type='dBFS', thresh=-40)
 
 class MainFrame(tk.Tk):
     def __init__(self):
@@ -46,8 +50,8 @@ class MainFrame(tk.Tk):
         self.isPaused = False  # Initialize isPaused here
         
 
-        self.enr_sr = 44100  # example sample rate for enrollment
-        self.mix_sr = 44100  # example sample rate for mixture
+        self.enr_sr = 16000  # example sample rate for enrollment
+        self.mix_sr = 16000  # example sample rate for mixture
 
 
         file_nums_array = np.linspace(0, 24, 25, dtype=int)
@@ -195,6 +199,10 @@ class MainFrame(tk.Tk):
         else:
             current_audio = self.onnx_refinement_out
 
+        # Replace edit mask
+        gt, _ = sf.read(self.dir + '/gt.wav')
+        self.edit_mask = fgmask(torch.from_numpy(current_audio).reshape(1,1,-1), torch.from_numpy(gt).reshape(1,1,-1)).reshape(-1).numpy()
+
         # If a new file is loaded, the mix input is the tse output. 
         # Otherwise, the mix input is the previous refinement model output
         mix, mix_sr = sf.read(self.mixture)
@@ -221,19 +229,18 @@ class MainFrame(tk.Tk):
         self.onnx_refinement_out = output_audio * self.edit_mask + (1-self.edit_mask) * current_audio
  
         self.onnx_refinement_out_file = "/onnx_refinement_output.wav"
-        # sf.write(self.dir + self.onnx_refinement_out_file, self.onnx_refinement_out, 16000)
+        sf.write(self.dir + self.onnx_refinement_out_file, self.onnx_refinement_out, 16000)
 
         self.num_refinements += 1
         print("self.num_refinements: ", self.num_refinements)
 
+        sf.write(os.path.join('debug', 'prev_output.wav'), current_audio, 16000)
         sf.write(os.path.join('debug', 'onnx_refinement_output.wav'), output_audio, 16000)
         sf.write(os.path.join('debug', 'edit_mask.wav'), self.edit_mask, 16000)
         sf.write(os.path.join('debug', 'mixture.wav'), mix, 16000)
 
         enrollment, _ = sf.read(self.dir + '/enrollment_full.wav')
         sf.write(os.path.join('debug', 'enrollment.wav'), enrollment, 16000)
-
-        gt, _ = sf.read(self.dir + '/gt.wav')
         sf.write(os.path.join('debug', 'gt.wav'), gt, 16000)
 
         if (self.num_refinements >= 5):
