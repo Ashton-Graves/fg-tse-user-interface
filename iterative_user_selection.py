@@ -109,8 +109,8 @@ class MainFrame(tk.Tk):
 
         self.refinement_counter = 0 # keeps track of the number of times the user has pushed refine
 
-        self.refinements_label = tk.Label(self, text="Refinement attempt 0/5")
-        self.refinements_label.pack(pady=3)
+        # self.refinements_label = tk.Label(self, text="Refinement attempt 0/5")
+        # self.refinements_label.pack(pady=3)
 
         self.buttonframe1 = tk.Frame(self)
         self.buttonframe1.columnconfigure(0, weight=1)
@@ -141,10 +141,10 @@ class MainFrame(tk.Tk):
 
         self.buttonframe2.pack()
 
-        self.addPlayMix = tk.Button(self, text = "Play mixture.wav", command=self.play_mix)
+        self.addPlayMix = tk.Button(self, text = "Play mixture", command=self.play_mix)
         self.addPlayMix.pack()
 
-        self.addPlayEnr = tk.Button(self, text = "Play enrollment.wav", command=self.play_enr)
+        self.addPlayEnr = tk.Button(self, text = "Play enrollment", command=self.play_enr)
         self.addPlayEnr.pack()
 
         self.draw_figure()
@@ -156,6 +156,7 @@ class MainFrame(tk.Tk):
 
         self.addRefineButton = tk.Button(self, text = "Refine", command=self.refine)
         self.addRefineButton.pack(side="right")
+        self.addRefineButton.config(state=tk.DISABLED)
 
         self.addExitButton = tk.Button(self, text = "Exit", command=self.exit)
         self.addExitButton.pack(side="right")
@@ -254,6 +255,7 @@ class MainFrame(tk.Tk):
         else:
             current_audio = self.onnx_refinement_out
 
+
         # Replace edit mask
         gt, _ = sf.read(self.dir + '/gt.wav')
         self.edit_mask = fgmask(torch.from_numpy(current_audio).reshape(1,1,-1), torch.from_numpy(gt).reshape(1,1,-1)).reshape(-1).numpy()
@@ -288,6 +290,13 @@ class MainFrame(tk.Tk):
 
         self.num_refinements += 1
         print("self.num_refinements: ", self.num_refinements)
+        # deactivate the refine button after 1 refinement
+        if (self.num_refinements >= 1):
+            self.addRefineButton.config(state=tk.DISABLED)
+            self.addHighlightButton.config(state=tk.DISABLED)
+            self.addUndoButton.config(state=tk.DISABLED)
+
+            self.update()
 
         sf.write(os.path.join('debug', 'prev_output.wav'), current_audio, 16000)
         sf.write(os.path.join('debug', 'onnx_refinement_output.wav'), output_audio, 16000)
@@ -298,7 +307,7 @@ class MainFrame(tk.Tk):
         sf.write(os.path.join('debug', 'enrollment.wav'), enrollment, 16000)
         sf.write(os.path.join('debug', 'gt.wav'), gt, 16000)
 
-        self.refinements_label.config(text=f"Refinement attempts: {self.num_refinements}/5")
+        # self.refinements_label.config(text=f"Refinement attempts: {self.num_refinements}/5")
 
         # Make a new folder for the current refinement attempt
         self.ref_folder = f"attempt{self.num_refinements}"
@@ -319,9 +328,9 @@ class MainFrame(tk.Tk):
         shutil.copy(self.dir + "/edit_mask.wav", self.path_to_ref)
         shutil.copy(self.dir + "/next_state.npy", self.path_to_ref)
 
-        if (self.num_refinements >= 5):
-            self.done()
-            self.refinements_label.config(text = "Refinement attempts: 0/5")
+        # if (self.num_refinements >= 1):
+        #     self.done()
+        #     self.refinements_label.config(text = "Refinement attempts: 0/5")
     
     def run_tse_model(self):
         # resets the amount of times that the refinement model has been run
@@ -387,6 +396,8 @@ class MainFrame(tk.Tk):
 
     # Selects group of file by using radio buttons on bottom left. Resets the counter to the first sample of the group. Updates GUI
     def mode(self):
+        self.addHighlightButton.config(state=tk.NORMAL)
+        self.addUndoButton.config(state=tk.NORMAL)
         if os.path.exists(self.data_folder):
             # Deletes the folder and all contents
             try:
@@ -527,7 +538,7 @@ class MainFrame(tk.Tk):
         self.ax.plot(mix_downsampled_time, mix_downsampled_waveform, color='red')
         self.ax.relim()
         self.ax.autoscale_view()
-        self.ax.set_title("mixture.wav")
+        self.ax.set_title("mixture")
 
         # Downsample the time and waveform
         downsampled_time = time[::downsample_factor]
@@ -536,7 +547,7 @@ class MainFrame(tk.Tk):
         self.ax3.plot(downsampled_time, downsampled_waveform, color='red')
         self.ax3.relim()
         self.ax3.autoscale_view()
-        self.ax3.set_title("tse_output.wav")
+        self.ax3.set_title("output")
 
         self.enr_waveform, self.enr_sr = sf.read(self.enrollment)
         enr_time = np.linspace(0, len(self.enr_waveform) / self.enr_sr, num=len(self.enr_waveform))
@@ -547,7 +558,7 @@ class MainFrame(tk.Tk):
         self.ax2.plot(enr_downsampled_time, enr_downsampled_waveform, color='red')
         self.ax2.relim()
         self.ax2.autoscale_view()
-        self.ax2.set_title("enrollment.wav")
+        self.ax2.set_title("enrollment")
 
         # Compute global y-axis limits
         y_min = min(np.min(mix_downsampled_waveform), np.min(downsampled_waveform), np.min(enr_downsampled_waveform))
@@ -627,8 +638,12 @@ class MainFrame(tk.Tk):
 
 
     def done(self):
+        self.addHighlightButton.config(state=tk.NORMAL)
+        self.addUndoButton.config(state=tk.NORMAL)
+
+
         self.counter += 1
-        self.refinements_label.config(text=f"Refinement attempts: {self.num_refinements}/5")
+        # self.refinements_label.config(text=f"Refinement attempts: {self.num_refinements}/5")
 
         # Redraw the canvas to update the plot
         self.complete_log.append(self.dir)
@@ -909,6 +924,8 @@ class MainFrame(tk.Tk):
         self.canvas.mpl_disconnect(self.press_event)
         self.canvas.mpl_disconnect(self.motion_event)
         self.canvas.mpl_disconnect(self.release_event)
+
+        self.addRefineButton.config(state = tk.NORMAL)
 
         self.canvas.draw()
 
